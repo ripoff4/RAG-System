@@ -227,6 +227,8 @@ def chat(request: ChatRequest):
 
     assistant_response = response["response"]
 
+    sources = response["sources"]
+
     # =====================================================
     # SAVE CONVERSATION
     # =====================================================
@@ -249,7 +251,9 @@ def chat(request: ChatRequest):
 
     return {
 
-        "response": assistant_response
+        "response": assistant_response,
+
+        "sources": sources
     }
 
 

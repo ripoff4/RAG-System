@@ -19,6 +19,8 @@ export default function App() {
 
   const [sessionId, setSessionId] = useState("")
 
+  const [expandedSources, setExpandedSources] = useState({})
+
 
   // =====================================================
   // CREATE / LOAD SESSION
@@ -160,7 +162,9 @@ export default function App() {
 
         role: "assistant",
 
-        content: response.data.response
+        content: response.data.response,
+
+        sources: response.data.sources || []
       }
 
       setMessages((prev) => [...prev, aiMessage])
@@ -405,6 +409,85 @@ export default function App() {
                     <p className="leading-relaxed text-[17px]">
                       {message.content}
                     </p>
+
+
+                    {
+                      message.role === "assistant" &&
+                      message.sources &&
+                      message.sources.length > 0 && (
+
+                        <div className="mt-5">
+
+                          <button
+
+                            onClick={() => {
+
+                              setExpandedSources((prev) => ({
+
+                                ...prev,
+
+                                [index]: !prev[index]
+                              }))
+                            }}
+
+                            className="text-sm text-cyan-400 hover:text-cyan-300 transition-all"
+                          >
+
+                            {
+                              expandedSources[index]
+                                ? "Hide Sources"
+                                : "Show Sources"
+                            }
+
+                          </button>
+
+
+                          {
+                            expandedSources[index] && (
+
+                              <div className="mt-3 space-y-2">
+
+                                {
+                                  message.sources.map((source, sourceIndex) => (
+
+                                    <div
+                                      key={sourceIndex}
+                                      className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-300"
+                                    >
+
+                                      {
+                                        message.sources.map((source, sourceIndex) => (
+
+                                          <div
+                                            key={sourceIndex}
+                                            className="px-4 py-4 rounded-xl bg-white/5 border border-white/10"
+                                          >
+
+                                            <p className="text-cyan-400 text-sm mb-2">
+
+                                              📄 {source.file}
+
+                                            </p>
+
+                                            <p className="text-sm text-gray-300 leading-relaxed">
+
+                                              {source.content}
+
+                                            </p>
+
+                                          </div>
+                                        ))
+                                      }
+
+                                    </div>
+                                  ))
+                                }
+                              </div>
+                            )
+                          }
+                        </div>
+                      )
+                    }
                   </div>
                 </div>
               ))}

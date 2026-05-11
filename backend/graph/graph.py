@@ -21,6 +21,7 @@ class AgentState(TypedDict):
     retriever: Any
     chat_history: list
     reworked_question: str
+    sources: list
 
 
 def document_retrieval(state: AgentState):
@@ -104,6 +105,31 @@ def generate_answer(state: AgentState):
     }
 
 
+def get_sources(state: AgentState):
+
+    sources = []
+
+    for doc in state["retrieved_docs"]:
+
+        source_name = doc.metadata.get(
+            "source",
+            "Unknown"
+        )
+
+        source_content = doc.page_content
+
+        sources.append({
+
+            "file": source_name,
+
+            "content": source_content[:300]
+        })
+
+    return {
+        "sources": sources
+    }
+
+
 graph = StateGraph(AgentState)
 
 graph.add_node(
@@ -119,6 +145,11 @@ graph.add_node(
 graph.add_node(
     "generate_answer",
     generate_answer
+)
+
+graph.add_node(
+    "get_sources",
+    get_sources
 )
 
 graph.add_edge(
@@ -138,6 +169,11 @@ graph.add_edge(
 
 graph.add_edge(
     "generate_answer",
+    "get_sources"
+)
+
+graph.add_edge(
+    "get_sources",
     END
 )
 
