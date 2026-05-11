@@ -26,12 +26,41 @@ class AgentState(TypedDict):
 
 def document_retrieval(state: AgentState):
 
-    retrieved_documents = state["retriever"].invoke(
-        state["reworked_question"]
+    query = state["reworked_question"]
+
+    retrieved_documents = state["retriever"].invoke(query)
+
+    query_words = query.lower().split()
+
+    scored_docs = []
+
+    for doc in retrieved_documents:
+
+        content = doc.page_content.lower()
+
+        keyword_score = sum(
+
+            word in content
+            for word in query_words
+        )
+
+        scored_docs.append(
+            (keyword_score, doc)
+        )
+
+    scored_docs.sort(
+        key=lambda x: x[0],
+        reverse=True
     )
 
+    reranked_docs = [
+
+        doc
+        for _, doc in scored_docs
+    ]
+
     return {
-        "retrieved_docs": retrieved_documents
+        "retrieved_docs": reranked_docs
     }
 
 
