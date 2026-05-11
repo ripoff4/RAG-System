@@ -19,16 +19,57 @@ class AgentState(TypedDict):
     response: str
     retrieved_docs: list
     retriever: Any
+    chat_history: list
+    reworked_question: str
 
 
 def document_retrieval(state: AgentState):
 
     retrieved_documents = state["retriever"].invoke(
-        state["user_question"]
+        state["reworked_question"]
     )
 
     return {
         "retrieved_docs": retrieved_documents
+    }
+
+
+def generate_standalone_question(state: AgentState):
+
+    history = state["chat_history"]
+
+    question = state["user_question"]
+
+    formatted_history = "\n".join(
+
+        [
+            f"{msg['role']}: {msg['content']}"
+            for msg in history
+        ]
+    )
+
+    rewrite_prompt = f"""
+
+        You are a query rewriting assistant.
+
+        Using the chat history,
+        rewrite the latest user question
+        into a standalone question.
+
+        Chat History:
+        {formatted_history}
+
+        Latest Question:
+        {question}
+
+        Standalone Question:
+
+    """
+
+    answer = llm.invoke(rewrite_prompt)
+
+    return {
+        "reworked_question": answer.content
     }
 
 
@@ -53,7 +94,7 @@ def generate_answer(state: AgentState):
     {context}
 
     Question:
-    {state["user_question"]}
+    {state["reworked_question"]}
     """
 
     answer = llm.invoke(prompt)
@@ -64,6 +105,11 @@ def generate_answer(state: AgentState):
 
 
 graph = StateGraph(AgentState)
+
+graph.add_node(
+    "generate_standalone_question",
+    generate_standalone_question
+)
 
 graph.add_node(
     "document_retrieval",
@@ -77,6 +123,11 @@ graph.add_node(
 
 graph.add_edge(
     START,
+    "generate_standalone_question"
+)
+
+graph.add_edge(
+    "generate_standalone_question",
     "document_retrieval"
 )
 
