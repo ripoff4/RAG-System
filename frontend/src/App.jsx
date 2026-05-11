@@ -5,7 +5,7 @@ export default function App() {
 
   const [started, setStarted] = useState(false)
 
-  const [uploadedFile, setUploadedFile] = useState(null)
+  const [uploadedFiles, setUploadedFiles] = useState([])
 
   const [uploading, setUploading] = useState(false)
 
@@ -83,8 +83,6 @@ export default function App() {
 
     if (!file) return
 
-    setUploadedFile(file)
-
     setUploading(true)
 
     try {
@@ -99,6 +97,12 @@ export default function App() {
 
         formData
       )
+
+      // =========================================
+      // ADD FILE TO EXISTING FILES
+      // =========================================
+
+      setUploadedFiles((prev) => [...prev, file])
 
       setUploadSuccess(true)
 
@@ -318,28 +322,40 @@ export default function App() {
             </div>
 
 
-            {/* FILE */}
+            {/* MULTI FILE DISPLAY */}
             {
-              uploadedFile && (
+              uploadedFiles.length > 0 && (
 
-                <div className="mb-6 flex items-center gap-3 w-fit px-5 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl">
+                <div className="mb-6 flex flex-wrap gap-4">
 
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-lg">
+                  {
+                    uploadedFiles.map((file, index) => (
 
-                    📄
+                      <div
+                        key={index}
+                        className="flex items-center gap-3 px-5 py-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-xl"
+                      >
 
-                  </div>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-lg">
 
-                  <div>
+                          📄
 
-                    <p className="font-medium text-white">
-                      {uploadedFile.name}
-                    </p>
+                        </div>
 
-                    <p className="text-sm text-gray-400">
-                      Vector database ready
-                    </p>
-                  </div>
+                        <div>
+
+                          <p className="font-medium text-white">
+                            {file.name}
+                          </p>
+
+                          <p className="text-sm text-gray-400">
+                            Indexed in vector database
+                          </p>
+
+                        </div>
+                      </div>
+                    ))
+                  }
                 </div>
               )
             }
@@ -364,6 +380,27 @@ export default function App() {
                       : "px-6 py-5 bg-white/5 border border-white/10 rounded-3xl"
                       }`}
                   >
+
+                    {
+                      message.role === "user" &&
+                      uploadedFiles.length > 0 && (
+
+                        <div className="mb-4 flex flex-wrap gap-2">
+
+                          {
+                            uploadedFiles.map((file, index) => (
+
+                              <div
+                                key={index}
+                                className="px-3 py-1 rounded-xl bg-white/10 border border-white/10 text-sm"
+                              >
+                                📄 {file.name}
+                              </div>
+                            ))
+                          }
+                        </div>
+                      )
+                    }
 
                     <p className="leading-relaxed text-[17px]">
                       {message.content}
@@ -409,7 +446,7 @@ export default function App() {
                       sendQuestion()
                     }
                   }}
-                  placeholder="Ask anything about your document..."
+                  placeholder="Ask anything about your documents..."
                   className="flex-1 bg-transparent outline-none text-white placeholder:text-gray-500 text-lg"
                 />
 

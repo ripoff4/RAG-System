@@ -20,7 +20,9 @@ from backend.config import UPLOAD_DIR
 app = FastAPI()
 
 
-# ---------------- CORS ---------------- #
+# =========================================================
+# CORS
+# =========================================================
 
 app.add_middleware(
     CORSMiddleware,
@@ -37,7 +39,9 @@ app.add_middleware(
 )
 
 
-# ---------------- CREATE UPLOAD FOLDER ---------------- #
+# =========================================================
+# CREATE UPLOAD FOLDER
+# =========================================================
 
 os.makedirs(
     UPLOAD_DIR,
@@ -49,10 +53,13 @@ os.makedirs(
 # GLOBAL STORAGE
 # =========================================================
 
-# Stores retriever for each session
+# Stores vectorstore per session
+vectorstores = {}
+
+# Stores retriever per session
 retrievers = {}
 
-# Stores chat history for each session
+# Stores chat history per session
 chat_histories = {}
 
 
@@ -92,6 +99,7 @@ async def upload_pdf(
 
 ):
 
+    global vectorstores
     global retrievers
     global chat_histories
 
@@ -100,7 +108,10 @@ async def upload_pdf(
         file.filename
     )
 
-    # Save uploaded file
+    # =====================================================
+    # SAVE PDF
+    # =====================================================
+
     with open(file_path, "wb") as buffer:
 
         shutil.copyfileobj(
@@ -116,13 +127,38 @@ async def upload_pdf(
 
     chunks = make_chunks(documents)
 
-    vectorstore = create_vector_database(chunks)
+    # =====================================================
+    # ADD FILE METADATA TO CHUNKS
+    # =====================================================
+
+    for chunk in chunks:
+
+        chunk.metadata["source"] = file.filename
+
+    # =====================================================
+    # MULTI FILE VECTORSTORE LOGIC
+    # =====================================================
+
+    if session_id not in vectorstores:
+
+        # First PDF
+        vectorstore = create_vector_database(chunks)
+
+        vectorstores[session_id] = vectorstore
+
+    else:
+
+        # Existing vectorstore
+        vectorstore = vectorstores[session_id]
+
+        # Add new PDF chunks
+        vectorstore.add_documents(chunks)
+
+    # =====================================================
+    # CREATE / UPDATE RETRIEVER
+    # =====================================================
 
     retriever = generate_retriever(vectorstore)
-
-    # =====================================================
-    # SAVE RETRIEVER FOR THIS SESSION
-    # =====================================================
 
     retrievers[session_id] = retriever
 
@@ -155,7 +191,7 @@ def chat(request: ChatRequest):
     global chat_histories
 
     # =====================================================
-    # CHECK IF SESSION HAS PDF
+    # CHECK RETRIEVER
     # =====================================================
 
     if request.session_id not in retrievers:
@@ -209,7 +245,6 @@ def chat(request: ChatRequest):
         "content": assistant_response
     })
 
-    # Save updated history
     chat_histories[request.session_id] = history
 
     return {
